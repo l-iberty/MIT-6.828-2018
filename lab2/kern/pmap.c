@@ -102,8 +102,12 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
+	result = nextfree;
+	if (n > 0) {
+		nextfree += ROUNDUP(n, PGSIZE);
+	}
 
-	return NULL;
+	return result;
 }
 
 // Set up a two-level page table:
@@ -125,7 +129,7 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
+	// panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -148,7 +152,8 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-
+	pages = (struct PageInfo*)boot_alloc(npages * sizeof(struct PageInfo));
+ 	memset(pages, 0, npages * sizeof(struct PageInfo));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -159,8 +164,14 @@ mem_init(void)
 	page_init();
 
 	check_page_free_list(1);
+	cprintf("check_page_free_list OK");
+
 	check_page_alloc();
+	cprintf("check_page_alloc OK");
+
 	check_page();
+	cprintf("check_page OK");
+
 
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory
@@ -251,12 +262,49 @@ page_init(void)
 	// Change the code to reflect this.
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
+	// size_t i;
+	// for (i = 0; i < npages; i++) {
+	// 	pages[i].pp_ref = 0;
+	// 	pages[i].pp_link = page_free_list;
+	// 	page_free_list = &pages[i];
+	// }
+
 	size_t i;
-	for (i = 0; i < npages; i++) {
+	extern char entry[], end[];
+	extern pde_t entry_pgdir[];
+	extern pte_t entry_pgtable[];
+	physaddr_t addr, kern_entry, kern_end, pgdir_addr, pgtable_addr;
+
+	kern_entry = (physaddr_t)ROUNDDOWN((char *)entry, PGSIZE) - KERNBASE;
+	kern_end = (physaddr_t)ROUNDDOWN((char *)end, PGSIZE) - KERNBASE;
+	pgdir_addr = (physaddr_t)entry_pgdir - KERNBASE;
+	pgtable_addr = (physaddr_t)entry_pgtable - KERNBASE;
+
+	cprintf("kern_entry: %08x  kern_end: %08x\n", kern_entry, kern_end);
+	cprintf("pgdir_addr: %08x  pgtable_addr: %08x\n", pgdir_addr, pgtable_addr);
+	cprintf("npages: %d  npages_basemem: %d\n", npages, npages_basemem);
+
+	for (i = 0, addr = 0; i < npages; i++, addr += PGSIZE) {
 		pages[i].pp_ref = 0;
+
+		if (addr >= PGSIZE && addr < npages_basemem * PGSIZE) {
+			pages[i].pp_ref = 1;
+		} else if (addr >= IOPHYSMEM && addr < EXTPHYSMEM) {
+			pages[i].pp_ref = 1;
+		} else if (addr >= EXTPHYSMEM) {
+			if (addr >= kern_entry && addr <= kern_end) { /* kernel */
+				pages[i].pp_ref = 1;
+			} else if (addr == (physaddr_t)entry_pgdir ||
+				addr == (physaddr_t)entry_pgtable) { /* pgdir & pgtable */
+				pages[i].pp_ref = 1;
+			}
+		}
+
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
+
+	cprintf("page_free_list: %08x\n", page_free_list);
 }
 
 //
