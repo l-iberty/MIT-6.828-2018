@@ -251,26 +251,24 @@ void page_init(void) {
   // 	pages[i].pp_link = page_free_list;
   // 	page_free_list = &pages[i];
   // }
+
   size_t i;
   extern char entry[], end[];
-  extern pde_t entry_pgdir[];
-  extern pte_t entry_pgtable[];
-  physaddr_t addr, kern_entry, kern_end, entry_pgdir_addr, entry_pgtable_addr, kern_pgdir_addr;
+  physaddr_t addr, kern_entry, kern_end, kern_pgdir_addr;
   physaddr_t pages_start, pages_end;
 
-  kern_entry = PTE_ADDR(PADDR(entry));
-  kern_end = PTE_ADDR(PADDR(end));
-  entry_pgdir_addr = PTE_ADDR(PADDR(entry_pgdir));
-  entry_pgtable_addr = PTE_ADDR(PADDR(entry_pgtable));
+  kern_entry = ROUNDDOWN((PADDR(entry)), PGSIZE);
+  kern_end = ROUNDUP((PADDR(end)), PGSIZE);
 
-  kern_pgdir_addr = PTE_ADDR(PADDR(kern_pgdir));
-  pages_start = PTE_ADDR(PADDR(pages));
-  pages_end = PTE_ADDR(PADDR(&pages[npages]));
+  kern_pgdir_addr = ROUNDDOWN((PADDR(kern_pgdir)), PGSIZE);
+  pages_start = ROUNDDOWN((PADDR(pages)), PGSIZE);
+  pages_end = ROUNDDOWN((PADDR(&pages[npages])), PGSIZE);
 
-  cprintf("kern_entry: %08x  kern_end: %08x  kern_pgdir_addr: %08x\n", kern_entry, kern_end, kern_pgdir_addr);
-  cprintf("entry_pgdir_addr: %08x  entry_pgtable_addr: %08x\n", entry_pgdir_addr, entry_pgtable_addr);
-  cprintf("npages: %d  npages_basemem: %d\n", npages, npages_basemem);
-  cprintf("pages_start: %08x  pages_end: %08x\n", pages_start, pages_end);
+  cprintf("======== page_init() start ========\n");
+  cprintf("  kernel: entry: %08x  end: %08x (phys)\n", kern_entry, kern_end);
+  cprintf("  kern_pgdir: %08x (phys)\n", PADDR(kern_pgdir));
+  cprintf("  npages: %d  npages_basemem: %d\n", npages, npages_basemem);
+  cprintf("  pages[] [%08x, %08x) (phys)\n", PADDR(pages), PADDR(&pages[npages]));
 
   for (i = 0, addr = 0; i < npages; i++, addr += PGSIZE) {
     pages[i].pp_ref = 0;
@@ -280,11 +278,11 @@ void page_init(void) {
     } else if (addr >= IOPHYSMEM && addr < EXTPHYSMEM) {
       pages[i].pp_ref = 1;
     } else if (addr >= EXTPHYSMEM) {
-      if (addr >= kern_entry && addr <= kern_end) { /* kernel */
+      if (addr >= kern_entry && addr < kern_end) { /* kernel */
         pages[i].pp_ref = 1;
-      } else if (addr == entry_pgdir_addr || addr == entry_pgtable_addr || addr == kern_pgdir_addr) {
+      } else if (addr == kern_pgdir_addr) { /* kern_pgdir */
         pages[i].pp_ref = 1;
-      } else if (addr >= pages_start && addr < pages_end) {
+      } else if (addr >= pages_start && addr < pages_end) { /* pages[] */
         pages[i].pp_ref = 1;
       }
     }
@@ -295,7 +293,8 @@ void page_init(void) {
     }
   }
 
-  cprintf("page_free_list: %08x\n", page_free_list);
+  cprintf("  page_free_list: %08x (virt)\n", page_free_list);
+  cprintf("======== page_init() end ========\n");
 }
 
 //
