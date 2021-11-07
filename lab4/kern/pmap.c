@@ -316,7 +316,7 @@ void page_init(void) {
   for (i = 0, addr = 0; i < npages; i++, addr += PGSIZE) {
     pages[i].pp_ref = 0;
 
-    if (addr == 0) {
+    if (addr == 0 || addr == MPENTRY_PADDR) {
       pages[i].pp_ref = 1;
     } else if (addr >= IOPHYSMEM && addr < EXTPHYSMEM) {
       pages[i].pp_ref = 1;
@@ -622,7 +622,14 @@ void *mmio_map_region(physaddr_t pa, size_t size) {
   // Hint: The staff solution uses boot_map_region.
   //
   // Your code here:
-  panic("mmio_map_region not implemented");
+  uintptr_t res = base;
+  size = ROUNDUP(size, PGSIZE);
+  if (base + size >= MMIOLIM) {
+    panic("mmio_map_region error: reservation would overflow MMIOLIM");
+  }
+  boot_map_region(kern_pgdir, base, size, pa, PTE_W | PTE_PCD | PTE_PWT);
+  base += size;
+  return (void *)res;
 }
 
 static uintptr_t user_mem_check_addr;
@@ -707,7 +714,9 @@ static void check_page_free_list(bool only_low_memory) {
   int nfree_basemem = 0, nfree_extmem = 0;
   char *first_free_page;
 
-  if (!page_free_list) panic("'page_free_list' is a null pointer!");
+  if (!page_free_list) {
+    panic("'page_free_list' is a null pointer!");
+  }
 
   if (only_low_memory) {
     // Move pages with lower addresses first in the free
@@ -726,8 +735,11 @@ static void check_page_free_list(bool only_low_memory) {
 
   // if there's a page that shouldn't be on the free list,
   // try to make sure it eventually causes trouble.
-  for (pp = page_free_list; pp; pp = pp->pp_link)
-    if (PDX(page2pa(pp)) < pdx_limit) memset(page2kva(pp), 0x97, 128);
+  for (pp = page_free_list; pp; pp = pp->pp_link) {
+    if (PDX(page2pa(pp)) < pdx_limit) {
+      memset(page2kva(pp), 0x97, 128);
+    }
+  }
 
   first_free_page = (char *)boot_alloc(0);
   for (pp = page_free_list; pp; pp = pp->pp_link) {
@@ -745,10 +757,11 @@ static void check_page_free_list(bool only_low_memory) {
     // (new test for lab 4)
     assert(page2pa(pp) != MPENTRY_PADDR);
 
-    if (page2pa(pp) < EXTPHYSMEM)
+    if (page2pa(pp) < EXTPHYSMEM) {
       ++nfree_basemem;
-    else
+    } else {
       ++nfree_extmem;
+    }
   }
 
   assert(nfree_basemem > 0);
@@ -768,10 +781,14 @@ static void check_page_alloc(void) {
   char *c;
   int i;
 
-  if (!pages) panic("'pages' is a null pointer!");
+  if (!pages) {
+    panic("'pages' is a null pointer!");
+  }
 
   // check number of free pages
-  for (pp = page_free_list, nfree = 0; pp; pp = pp->pp_link) ++nfree;
+  for (pp = page_free_list, nfree = 0; pp; pp = pp->pp_link) {
+    ++nfree;
+  }
 
   // should be able to allocate three pages
   pp0 = pp1 = pp2 = 0;
@@ -812,7 +829,9 @@ static void check_page_alloc(void) {
   assert((pp = page_alloc(ALLOC_ZERO)));
   assert(pp && pp0 == pp);
   c = page2kva(pp);
-  for (i = 0; i < PGSIZE; i++) assert(c[i] == 0);
+  for (i = 0; i < PGSIZE; i++) {
+    assert(c[i] == 0);
+  }
 
   // give free list back
   page_free_list = fl;
@@ -823,7 +842,9 @@ static void check_page_alloc(void) {
   page_free(pp2);
 
   // number of free pages should be the same
-  for (pp = page_free_list; pp; pp = pp->pp_link) --nfree;
+  for (pp = page_free_list; pp; pp = pp->pp_link) {
+    --nfree;
+  }
   assert(nfree == 0);
 
   cprintf("check_page_alloc() succeeded!\n");
@@ -886,8 +907,9 @@ static void check_kern_pgdir(void) {
         if (i >= PDX(KERNBASE)) {
           assert(pgdir[i] & PTE_P);
           assert(pgdir[i] & PTE_W);
-        } else
+        } else {
           assert(pgdir[i] == 0);
+        }
         break;
     }
   }
@@ -1045,7 +1067,9 @@ static void check_page(void) {
   page_free(pp0);
   pgdir_walk(kern_pgdir, 0x0, 1);
   ptep = (pte_t *)page2kva(pp0);
-  for (i = 0; i < NPTENTRIES; i++) assert((ptep[i] & PTE_P) == 0);
+  for (i = 0; i < NPTENTRIES; i++) {
+    assert((ptep[i] & PTE_P) == 0);
+  }
   kern_pgdir[0] = 0;
   pp0->pp_ref = 0;
 
