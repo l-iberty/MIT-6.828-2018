@@ -246,6 +246,9 @@ int32_t syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint3
       return sys_env_destroy(a1);
     case SYS_getenvid:
       return sys_getenvid();
+    case SYS_yield:
+      sys_yield();
+      return 0;
     default:
       return -E_INVAL;
   }
