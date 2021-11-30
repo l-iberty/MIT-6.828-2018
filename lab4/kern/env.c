@@ -385,7 +385,7 @@ static void load_icode(struct Env *e, uint8_t *binary) {
 //
 void env_create(uint8_t *binary, enum EnvType type) {
   // LAB 3: Your code here.
-  struct Env *e = env_free_list;
+  struct Env *e;
   assert(0 == env_alloc(&e, 0));
   load_icode(e, binary);
   e->env_type = type;
@@ -509,10 +509,8 @@ void env_run(struct Env *e) {
 
   // LAB 3: Your code here.
 
-  if (curenv != NULL) {
-    if (curenv->env_status == ENV_RUNNING) {
-      curenv->env_status = ENV_RUNNABLE;
-    }
+  if (curenv && curenv->env_status == ENV_RUNNING) {
+    curenv->env_status = ENV_RUNNABLE;
   }
   curenv = e;
   curenv->env_status = ENV_RUNNING;

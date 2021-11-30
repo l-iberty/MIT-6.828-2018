@@ -34,7 +34,8 @@ void sched_yield(void) {
       panic("env_run should not return");
     }
   }
-  if (curenv != NULL && curenv->env_status == ENV_RUNNING) {
+
+  if (curenv && curenv->env_status == ENV_RUNNING) {
     env_run(curenv);
     panic("env_run should not return");
   }
