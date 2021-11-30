@@ -367,7 +367,7 @@ int32_t syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint3
     case SYS_page_map:
       return sys_page_map((envid_t)a1, (void *)a2, (envid_t)a3, (void *)a4, a5);
     case SYS_page_unmap:
-      return sys_page_unmap((envid_t)a1, (void *)a1);
+      return sys_page_unmap((envid_t)a1, (void *)a2);
     case SYS_ipc_try_send:
       return sys_ipc_try_send((envid_t)a1, a2, (void *)a3, a4);
     case SYS_ipc_recv:
