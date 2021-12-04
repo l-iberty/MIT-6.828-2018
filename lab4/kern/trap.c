@@ -360,15 +360,22 @@ void page_fault_handler(struct Trapframe *tf) {
 
   user_mem_assert(curenv, (const void *)(UXSTACKTOP - PGSIZE), PGSIZE, PTE_P | PTE_U | PTE_W);
 
-  utf = (struct UTrapframe *)(UXSTACKTOP - sizeof(struct UTrapframe));
+  if (tf->tf_esp >= UXSTACKTOP - PGSIZE && tf->tf_esp < UXSTACKTOP) {
+    utf = (struct UTrapframe *)(tf->tf_esp - 4 - sizeof(struct UTrapframe));
+  } else {
+    utf = (struct UTrapframe *)(UXSTACKTOP - sizeof(struct UTrapframe));
+  }
+
   utf->utf_fault_va = fault_va;
   utf->utf_err = T_PGFLT;
   utf->utf_regs = tf->tf_regs;
   utf->utf_eip = tf->tf_eip;
   utf->utf_eflags = tf->tf_eflags;
-  utf->utf_esp = UXSTACKTOP;
+  utf->utf_esp = tf->tf_esp;
 
-  ((void (*)(void))(curenv->env_pgfault_upcall))();
+  curenv->env_tf.tf_eip = (uintptr_t)(curenv->env_pgfault_upcall);
+  curenv->env_tf.tf_esp = (uintptr_t)utf;
+  env_run(curenv);
 
 bad:
   // Destroy the environment that caused the fault.
