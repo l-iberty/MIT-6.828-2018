@@ -11,8 +11,6 @@
 #include <kern/syscall.h>
 #include <kern/trap.h>
 
-#define PAGE_ALGINED(x) (PGOFF(x) == 0)
-
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
 // Destroys the environment on memory errors.

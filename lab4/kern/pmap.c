@@ -515,16 +515,12 @@ int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm) {
     return -E_NO_MEM;
   }
 
-  if (*ppte != 0) {
-    if (PTE_ADDR(*ppte) != page2pa(pp)) {
-      page_remove(pgdir, va);
-      pp->pp_ref++;
-    }
-  } else {
-    pp->pp_ref++;
+  pp->pp_ref++;
+
+  if (*ppte & PTE_P) {
+    page_remove(pgdir, va);
   }
 
-  pgdir[PDX(va)] = PTE_ADDR(pgdir[PDX(va)]) | perm | PTE_P;
   *ppte = page2pa(pp) | perm | PTE_P;
 
   return 0;
@@ -696,7 +692,7 @@ int user_mem_check(struct Env *env, const void *va, size_t len, int perm) {
 // environment, this function will not return.
 //
 void user_mem_assert(struct Env *env, const void *va, size_t len, int perm) {
-  if (user_mem_check(env, va, len, perm | PTE_U) < 0) {
+  if (user_mem_check(env, va, len, perm | PTE_P | PTE_U) < 0) {
     cprintf(
         "[%08x] user_mem_check assertion failure for "
         "va %08x\n",

@@ -24,8 +24,11 @@ static void pgfault(struct UTrapframe *utf) {
 
   // LAB 4: Your code here.
 
+  // printf("pgfault() invoked. addr: %08x, err: 0x%x, eip: %08x\n", addr, err, utf->utf_eip);
+
   if ((err & FEC_WR) == 0 || (uvpt[PGNUM(addr)] & PTE_COW) == 0) {
-    panic("faulting access");
+    panic("faulting access\n           fault_va: %08x, err: 0x%x, pte: %03x, eip: %08x", utf->utf_fault_va, err,
+          uvpt[PGNUM(addr)], utf->utf_eip);
   }
 
   // Allocate a new page, map it at a temporary location (PFTEMP),
@@ -43,7 +46,7 @@ static void pgfault(struct UTrapframe *utf) {
   if ((r = sys_page_alloc(0, PFTEMP, PTE_P | PTE_U | PTE_W)) < 0) {
     panic("sys_page_alloc: %e", r);
   }
-  memmove((void *)PFTEMP, addr, PGSIZE);
+  memmove(PFTEMP, addr, PGSIZE);
 
   // Maps the new page at the appropriate address with read/write permissions,
   // in place of the old read-only mapping.
@@ -56,7 +59,7 @@ static void pgfault(struct UTrapframe *utf) {
 }
 
 //
-// Map our virtual page pn (address pn*PGSIZE) into the target envid
+// Map our virtual page (address addr) into the target envid
 // at the same virtual address.  If the page is writable or copy-on-write,
 // the new mapping must be created copy-on-write, and then our mapping must be
 // marked copy-on-write as well.  (Exercise: Why do we need to mark ours
@@ -66,7 +69,7 @@ static void pgfault(struct UTrapframe *utf) {
 // Returns: 0 on success, < 0 on error.
 // It is also OK to panic on error.
 //
-static int duppage(envid_t envid, unsigned pn) {
+static int duppage(envid_t envid, void *addr) {
   int r;
 
   // LAB 4: Your code here.
@@ -74,7 +77,10 @@ static int duppage(envid_t envid, unsigned pn) {
   // Map the page copy-on-write into the address space of the child and
   // then remap the page copy-on-write in its own address space.
 
-  void *addr = (void *)(pn * PGSIZE);
+  if (!PAGE_ALGINED(addr)) {
+    panic("addr %08x not page-aligned", addr);
+  }
+
   pte_t pte = uvpt[PGNUM(addr)];
   int perm = PTE_P | PTE_U;
 
@@ -86,7 +92,9 @@ static int duppage(envid_t envid, unsigned pn) {
     panic("sys_page_map: %e", r);
   }
 
-  uvpt[PGNUM(addr)] |= PTE_COW;
+  if ((r = sys_page_map(0, addr, 0, addr, perm | PTE_COW)) < 0) {
+    panic("sys_page_map: %e", r);
+  }
 
   return 0;
 }
@@ -113,6 +121,7 @@ envid_t fork(void) {
   envid_t envid;
   uintptr_t addr;
   int r;
+  extern unsigned char end[];
 
   // The parent installs pgfault() as the C-level page fault handler,
   // using the set_pgfault_handler() function you implemented above.
@@ -139,11 +148,14 @@ envid_t fork(void) {
   // into the address space of the child and then remap the page copy-on-write
   // in its own address space.
   for (addr = UTEXT; addr < UTOP; addr += PGSIZE) {
-    pte_t pte = uvpt[PGNUM(addr)];
-    if ((pte & PTE_W) || (pte & PTE_COW)) {
-      if ((r = duppage(envid, addr / PGSIZE)) < 0) {
-        panic("duppage: %e", r);
-      }
+    if (addr == (uintptr_t)(UXSTACKTOP - PGSIZE)) {
+      continue;
+    }
+    if ((uvpd[PDX(addr)] & PTE_P) == 0) {
+      continue;
+    }
+    if (uvpt[PGNUM(addr)] & PTE_P) {
+      duppage(envid, (void *)addr);
     }
   }
 
@@ -154,7 +166,7 @@ envid_t fork(void) {
   }
 
   // Allocate a fresh page in the child for the exception stack.
-  if ((r = sys_page_alloc(envid, (void *)UXSTACKTOP, PTE_P | PTE_U | PTE_W)) < 0) {
+  if ((r = sys_page_alloc(envid, (void *)(UXSTACKTOP - PGSIZE), PTE_P | PTE_U | PTE_W)) < 0) {
     panic("sys_page_alloc: %e", r);
   }
 
