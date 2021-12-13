@@ -67,7 +67,9 @@ _pgfault_upcall:
 	// LAB 4: Your code here.
 	movl 40(%esp), %eax  // %eax <- trap-time %eip
 	movl 48(%esp), %ebx  // %eax <- trap-time %esp
-	movl %eax, -4(%ebx)  // "push" trap-time %eip onto the trap-time stack
+	subl $4, %ebx
+	movl %eax, (%ebx)    // "push" trap-time %eip onto the trap-time stack
+	movl %ebx, 48(%esp)
 
 	// Restore the trap-time registers.  After you do this, you
 	// can no longer modify any general-purpose registers.
@@ -88,5 +90,4 @@ _pgfault_upcall:
 
 	// Return to re-execute the instruction that faulted.
 	// LAB 4: Your code here.
-	subl $4, %esp
 	ret
