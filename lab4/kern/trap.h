@@ -41,4 +41,21 @@ void machine_check();
 void simd_float_point_exception();
 void syscall_handler();
 
+void irq_0();
+void irq_1();
+void irq_2();
+void irq_3();
+void irq_4();
+void irq_5();
+void irq_6();
+void irq_7();
+void irq_8();
+void irq_9();
+void irq_10();
+void irq_11();
+void irq_12();
+void irq_13();
+void irq_14();
+void irq_15();
+
 #endif /* JOS_KERN_TRAP_H */
