@@ -25,9 +25,11 @@ void umain(int argc, char **argv);
 
 // libmain.c or entry.S
 extern const char *binaryname;
-extern const volatile struct Env *thisenv;
+// extern const volatile struct Env *thisenv;
 extern const volatile struct Env envs[NENV];
+extern const volatile struct Env *penvs[NENV];
 extern const volatile struct PageInfo pages[];
+#define thisenv penvs[ENVX(sys_getenvid())]
 
 // exit.c
 void exit(void);
@@ -54,14 +56,10 @@ int sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm);
 int sys_ipc_recv(void *rcv_pg);
 
 // This must be inlined.  Exercise for reader: why?
-static inline envid_t __attribute__((always_inline))
-sys_exofork(void)
-{
-	envid_t ret;
-	asm volatile("int %2"
-		     : "=a" (ret)
-		     : "a" (SYS_exofork), "i" (T_SYSCALL));
-	return ret;
+static inline envid_t __attribute__((always_inline)) sys_exofork(void) {
+  envid_t ret;
+  asm volatile("int %2" : "=a"(ret) : "a"(SYS_exofork), "i"(T_SYSCALL));
+  return ret;
 }
 
 // ipc.c
