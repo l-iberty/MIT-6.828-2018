@@ -213,7 +213,6 @@ int sfork(void) {
   uintptr_t addr;
   int r;
   extern unsigned char end[];
-  extern void _pgfault_upcall(void);
 
   // The parent installs pgfault() as the C-level page fault handler,
   // using the set_pgfault_handler() function you implemented above.
@@ -258,10 +257,7 @@ int sfork(void) {
   // The parent sets the user page fault entrypoint for the child to
   // look like its own.
   //
-  // if ((r = sys_env_set_pgfault_upcall(envid, thisenv->env_pgfault_upcall)) < 0) {
-  // ^
-  // I don't know why it doesn't work. Fuck!
-  if ((r = sys_env_set_pgfault_upcall(envid, _pgfault_upcall)) < 0) {
+  if ((r = sys_env_set_pgfault_upcall(envid, thisenv->env_pgfault_upcall)) < 0) {
     panic("sys_env_set_pgfault_upcall: %e", r);
   }
 
