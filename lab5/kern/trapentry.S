@@ -47,10 +47,75 @@
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
+TRAPHANDLER_NOEC(syscall_handler, T_SYSCALL)
 
+TRAPHANDLER_NOEC(divide_error, T_DIVIDE)
+
+TRAPHANDLER_NOEC(debug, T_DEBUG)
+
+TRAPHANDLER_NOEC(non_maskable_interrupt, T_NMI)
+
+TRAPHANDLER_NOEC(_breakpoint, 3)
+
+TRAPHANDLER_NOEC(overflow, 4)
+
+TRAPHANDLER_NOEC(bound_range_exceeded, 5)
+
+TRAPHANDLER_NOEC(invalid_opcode, 6)
+
+TRAPHANDLER_NOEC(device_not_avaliable, 7)
+
+TRAPHANDLER(double_fault, 8)
+
+TRAPHANDLER_NOEC(coprocessor_segment_overrun, 9)
+
+TRAPHANDLER(invalid_tss, 10)
+
+TRAPHANDLER(segment_not_present, 11)
+
+TRAPHANDLER(stack_fault, 12)
+
+TRAPHANDLER(general_fault, 13)
+
+TRAPHANDLER(page_fault, 14)
+
+TRAPHANDLER_NOEC(fpu_float_point_error, 16)
+
+TRAPHANDLER(alignment_check, 17)
+
+TRAPHANDLER_NOEC(machine_check, 18)
+
+TRAPHANDLER_NOEC(simd_float_point_exception, 19)
+
+TRAPHANDLER_NOEC(irq_0, IRQ_OFFSET+0)
+TRAPHANDLER_NOEC(irq_1, IRQ_OFFSET+1)
+TRAPHANDLER_NOEC(irq_2, IRQ_OFFSET+2)
+TRAPHANDLER_NOEC(irq_3, IRQ_OFFSET+3)
+TRAPHANDLER_NOEC(irq_4, IRQ_OFFSET+4)
+TRAPHANDLER_NOEC(irq_5, IRQ_OFFSET+5)
+TRAPHANDLER_NOEC(irq_6, IRQ_OFFSET+6)
+TRAPHANDLER_NOEC(irq_7, IRQ_OFFSET+7)
+TRAPHANDLER_NOEC(irq_8, IRQ_OFFSET+8)
+TRAPHANDLER_NOEC(irq_9, IRQ_OFFSET+9)
+TRAPHANDLER_NOEC(irq_10, IRQ_OFFSET+10)
+TRAPHANDLER_NOEC(irq_11, IRQ_OFFSET+11)
+TRAPHANDLER_NOEC(irq_12, IRQ_OFFSET+12)
+TRAPHANDLER_NOEC(irq_13, IRQ_OFFSET+13)
+TRAPHANDLER_NOEC(irq_14, IRQ_OFFSET+14)
+TRAPHANDLER_NOEC(irq_15, IRQ_OFFSET+15)
 
 
 /*
  * Lab 3: Your code here for _alltraps
  */
+_alltraps:
+	pushl  %ds
+	pushl  %es
+	pushal
 
+	movw %ss, %ax
+	movw %ax, %ds
+	movw %ax, %es
+
+	pushl %esp
+	call  trap

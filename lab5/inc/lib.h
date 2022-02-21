@@ -30,7 +30,9 @@ void	umain(int argc, char **argv);
 extern const char *binaryname;
 extern const volatile struct Env *thisenv;
 extern const volatile struct Env envs[NENV];
+extern const volatile struct Env *penvs[NENV];
 extern const volatile struct PageInfo pages[];
+#define thisenv penvs[ENVX(sys_getenvid())]
 
 // exit.c
 void	exit(void);
