@@ -89,21 +89,21 @@ void trap_init(void) {
   SETGATE(idt[T_SYSCALL], 0, GD_KT, syscall_handler, 3);
 
   SETGATE(idt[IRQ_OFFSET + 0], 0, GD_KT, irq_0, 3);
-  SETGATE(idt[IRQ_OFFSET + 1], 1, GD_KT, irq_1, 3);
-  SETGATE(idt[IRQ_OFFSET + 2], 2, GD_KT, irq_2, 3);
-  SETGATE(idt[IRQ_OFFSET + 3], 3, GD_KT, irq_3, 3);
-  SETGATE(idt[IRQ_OFFSET + 4], 4, GD_KT, irq_4, 3);
-  SETGATE(idt[IRQ_OFFSET + 5], 5, GD_KT, irq_5, 3);
-  SETGATE(idt[IRQ_OFFSET + 6], 6, GD_KT, irq_6, 3);
-  SETGATE(idt[IRQ_OFFSET + 7], 7, GD_KT, irq_7, 3);
-  SETGATE(idt[IRQ_OFFSET + 8], 8, GD_KT, irq_8, 3);
-  SETGATE(idt[IRQ_OFFSET + 9], 9, GD_KT, irq_9, 3);
-  SETGATE(idt[IRQ_OFFSET + 10], 10, GD_KT, irq_10, 3);
-  SETGATE(idt[IRQ_OFFSET + 11], 11, GD_KT, irq_11, 3);
-  SETGATE(idt[IRQ_OFFSET + 12], 12, GD_KT, irq_12, 3);
-  SETGATE(idt[IRQ_OFFSET + 13], 13, GD_KT, irq_13, 3);
-  SETGATE(idt[IRQ_OFFSET + 14], 14, GD_KT, irq_14, 3);
-  SETGATE(idt[IRQ_OFFSET + 15], 15, GD_KT, irq_15, 3);
+  SETGATE(idt[IRQ_OFFSET + 1], 0, GD_KT, irq_1, 3);
+  SETGATE(idt[IRQ_OFFSET + 2], 0, GD_KT, irq_2, 3);
+  SETGATE(idt[IRQ_OFFSET + 3], 0, GD_KT, irq_3, 3);
+  SETGATE(idt[IRQ_OFFSET + 4], 0, GD_KT, irq_4, 3);
+  SETGATE(idt[IRQ_OFFSET + 5], 0, GD_KT, irq_5, 3);
+  SETGATE(idt[IRQ_OFFSET + 6], 0, GD_KT, irq_6, 3);
+  SETGATE(idt[IRQ_OFFSET + 7], 0, GD_KT, irq_7, 3);
+  SETGATE(idt[IRQ_OFFSET + 8], 0, GD_KT, irq_8, 3);
+  SETGATE(idt[IRQ_OFFSET + 9], 0, GD_KT, irq_9, 3);
+  SETGATE(idt[IRQ_OFFSET + 10], 0, GD_KT, irq_10, 3);
+  SETGATE(idt[IRQ_OFFSET + 11], 0, GD_KT, irq_11, 3);
+  SETGATE(idt[IRQ_OFFSET + 12], 0, GD_KT, irq_12, 3);
+  SETGATE(idt[IRQ_OFFSET + 13], 0, GD_KT, irq_13, 3);
+  SETGATE(idt[IRQ_OFFSET + 14], 0, GD_KT, irq_14, 3);
+  SETGATE(idt[IRQ_OFFSET + 15], 0, GD_KT, irq_15, 3);
 
   // Per-CPU setup
   trap_init_percpu();
@@ -136,18 +136,15 @@ void trap_init_percpu(void) {
   //
   // LAB 4: Your code here:
 
-  int i;
-  for (i = 0; i < NCPU; i++) {
-    // Setup a TSS so that we get the right stack
-    // when we trap to the kernel.
-    cpus[i].cpu_ts.ts_esp0 = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
-    cpus[i].cpu_ts.ts_ss0 = GD_KD;
-    cpus[i].cpu_ts.ts_iomb = sizeof(struct Taskstate);
+  // Setup a TSS so that we get the right stack
+  // when we trap to the kernel.
+  thiscpu->cpu_ts.ts_esp0 = KSTACKTOP - cpunum() * (KSTKSIZE + KSTKGAP);
+  thiscpu->cpu_ts.ts_ss0 = GD_KD;
+  thiscpu->cpu_ts.ts_iomb = sizeof(struct Taskstate);
 
-    // Initialize the TSS slot of the gdt.
-    gdt[(GD_TSS0 >> 3) + i] = SEG16(STS_T32A, (uint32_t)(&cpus[i].cpu_ts), sizeof(struct Taskstate) - 1, 0);
-    gdt[(GD_TSS0 >> 3) + i].sd_s = 0;
-  }
+  // Initialize the TSS slot of the gdt.
+  gdt[(GD_TSS0 >> 3) + cpunum()] = SEG16(STS_T32A, (uint32_t)(&thiscpu->cpu_ts), sizeof(struct Taskstate) - 1, 0);
+  gdt[(GD_TSS0 >> 3) + cpunum()].sd_s = 0;
 
   // Load the TSS selector
   ltr(GD_TSS0 + (cpunum() << 3));

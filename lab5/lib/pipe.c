@@ -84,7 +84,7 @@ _pipeisclosed(struct Fd *fd, struct Pipe *p)
 		if (n == nn)
 			return ret;
 		if (n != nn && ret == 1)
-			cprintf("pipe race avoided\n", n, thisenv->env_runs, ret);
+			cprintf("pipe race avoided: %d, %d, %d\n", n, thisenv->env_runs, ret);
 	}
 }
 

@@ -431,7 +431,8 @@ pte_t *pgdir_walk(pde_t *pgdir, const void *va, int create) {
   pte_t *pgtable;
 
   pgtable = (pte_t *)PTE_ADDR(pgdir[PDX(va)]);
-  if (pgtable == NULL) {
+
+  if (!(pgdir[PDX(va)] & PTE_P)) {
     if (!create) {
       return NULL;
     }
@@ -544,6 +545,9 @@ struct PageInfo *page_lookup(pde_t *pgdir, void *va, pte_t **pte_store) {
 
   ppte = pgdir_walk(pgdir, va, false);
   if (ppte == NULL) {
+    return NULL;
+  }
+  if (!(*ppte & PTE_P)) {
     return NULL;
   }
   if (pte_store) {

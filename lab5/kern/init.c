@@ -44,8 +44,8 @@ void i386_init(void) {
   // Starting non-boot CPUs
   boot_aps();
 
-	// Start fs.
-	// ENV_CREATE(fs_fs, ENV_TYPE_FS);
+  // Start fs.
+  ENV_CREATE(fs_fs, ENV_TYPE_FS);
 
 #if defined(TEST)
   // Don't touch -- used by grading script!
@@ -73,13 +73,20 @@ void i386_init(void) {
   // ENV_CREATE(user_stresssched, ENV_TYPE_USER);
 
   // ENV_CREATE(user_pingpong, ENV_TYPE_USER);
-  ENV_CREATE(user_primes, ENV_TYPE_USER);
+  // ENV_CREATE(user_primes, ENV_TYPE_USER);
   // ENV_CREATE(user_sendpage, ENV_TYPE_USER);
 
   // ENV_CREATE(user_sforktree, ENV_TYPE_USER);
   // ENV_CREATE(user_pingpongs, ENV_TYPE_USER);
 
+  ENV_CREATE(user_testfile, ENV_TYPE_USER);
+  // ENV_CREATE(user_spawnhello, ENV_TYPE_USER);
+  // ENV_CREATE(user_spawnfaultio, ENV_TYPE_USER);
+
 #endif  // TEST*
+
+  // Should not be necessary - drains keyboard because interrupt has given up.
+  kbd_intr();
 
   // Schedule and run the first user environment!
   sched_yield();
@@ -106,7 +113,7 @@ static void boot_aps(void) {
       continue;
 
     // Tell mpentry.S what stack to use
-		// Tell mpentry.S what stack to use 
+    // Tell mpentry.S what stack to use
     // Tell mpentry.S what stack to use
     mpentry_kstack = percpu_kstacks[c - cpus] + KSTKSIZE;
     // Start the CPU at mpentry_start

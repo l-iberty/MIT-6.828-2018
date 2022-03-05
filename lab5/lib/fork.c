@@ -84,6 +84,13 @@ static int duppage(envid_t envid, void *addr) {
   pte_t pte = uvpt[PGNUM(addr)];
   int perm = PTE_P | PTE_U;
 
+  if (pte & PTE_SHARE) {
+    if ((r = sys_page_map(0, addr, envid, addr, pte & PTE_SYSCALL)) < 0) {
+      panic("sys_page_map: %e", r);
+    }
+    return 0;
+  }
+
   if ((pte & PTE_W) || (pte & PTE_COW)) {
     perm |= PTE_COW;
   }
@@ -185,7 +192,6 @@ envid_t fork(void) {
 
   // The parent sets the user page fault entrypoint for the child to
   // look like its own.
-  //
   if ((r = sys_env_set_pgfault_upcall(envid, thisenv->env_pgfault_upcall)) < 0) {
     panic("sys_env_set_pgfault_upcall: %e", r);
   }
