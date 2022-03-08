@@ -258,7 +258,8 @@ static void mem_init_mp(void) {
 
   int i;
   for (i = 0; i < NCPU; i++) {
-    boot_map_region(kern_pgdir, KSTACKTOP - i * (KSTKSIZE + KSTKGAP) - KSTKSIZE, KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W);
+    boot_map_region(kern_pgdir, KSTACKTOP - i * (KSTKSIZE + KSTKGAP) - KSTKSIZE, KSTKSIZE, PADDR(percpu_kstacks[i]),
+                    PTE_W);
   }
 }
 
@@ -382,12 +383,8 @@ void page_free(struct PageInfo *pp) {
   // Fill this function in
   // Hint: You may want to panic if pp->pp_ref is nonzero or
   // pp->pp_link is not NULL.
-  if (pp->pp_ref != 0) {
-    panic("page_free: pp->pp_ref != nonzero");
-  }
-  if (pp->pp_link) {
-    panic("page_free: pp->pp_link != NULL");
-  }
+  assert(pp->pp_ref == 0);
+  assert(pp->pp_link == NULL);
 
   pp->pp_link = page_free_list;
   page_free_list = pp;
@@ -465,20 +462,15 @@ static void boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t 
   assert(pa % PGSIZE == 0);
   assert(size % PGSIZE == 0);
 
-  uint64_t __u64_va = (uint64_t)va;
-  uint64_t __u64_va_end = __u64_va + size;
-  uint64_t __u64_pa = (uint64_t)pa;
+  int i;
   pte_t *ppte;
 
-  while (__u64_va < __u64_va_end) {
-    va = (uintptr_t)__u64_va;
-    pa = (uintptr_t)__u64_pa;
+  for (i = 0; i < size / PGSIZE; i++) {
     ppte = pgdir_walk(pgdir, (const void *)va, true);
     assert(ppte);
     *ppte = pa | perm | PTE_P;
-
-    __u64_va += PGSIZE;
-    __u64_pa += PGSIZE;
+    va += PGSIZE;
+    pa += PGSIZE;
   }
 }
 

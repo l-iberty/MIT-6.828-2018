@@ -79,9 +79,10 @@ void i386_init(void) {
   // ENV_CREATE(user_sforktree, ENV_TYPE_USER);
   // ENV_CREATE(user_pingpongs, ENV_TYPE_USER);
 
-  ENV_CREATE(user_testfile, ENV_TYPE_USER);
+  // ENV_CREATE(user_testfile, ENV_TYPE_USER);
   // ENV_CREATE(user_spawnhello, ENV_TYPE_USER);
   // ENV_CREATE(user_spawnfaultio, ENV_TYPE_USER);
+  ENV_CREATE(user_icode, ENV_TYPE_USER);
 
 #endif  // TEST*
 
